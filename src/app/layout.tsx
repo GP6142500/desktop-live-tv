@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ChannelsProvider } from "@/lib/channels-store";
 
 export const metadata: Metadata = {
   title: "电视直播 · Windows 桌面版",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="dark">
       <body className="antialiased">
-        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <TooltipProvider delayDuration={200}>
+          <ChannelsProvider>{children}</ChannelsProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

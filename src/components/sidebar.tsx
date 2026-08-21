@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ListVideo, Search, Tv, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { ListVideo, Search, Tv, PanelRightClose, PanelRightOpen, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface SidebarProps {
   query: string;
   onQueryChange: (q: string) => void;
   onOpenPalette: () => void;
+  onManageSources: () => void;
   listOpen: boolean;
   onToggleList: () => void;
 }
@@ -31,6 +32,7 @@ export function Sidebar({
   query,
   onQueryChange,
   onOpenPalette,
+  onManageSources,
   listOpen,
   onToggleList,
 }: SidebarProps) {
@@ -42,7 +44,7 @@ export function Sidebar({
   return (
     <div className="flex h-full w-full flex-col bg-card">
       {/* 品牌区 */}
-      <div className="flex items-center gap-2 px-4 py-3.5">
+      <div className="flex items-center gap-2 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Tv className="h-4 w-4" />
         </div>
@@ -52,6 +54,16 @@ export function Sidebar({
             Windows 桌面版
           </span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={onManageSources}
+          title="直播源配置"
+          aria-label="直播源配置"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
       </div>
       <Separator />
 

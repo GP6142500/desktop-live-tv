@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use tauri::Manager;
+
 use axum::{
     body::Body,
     extract::{Query, State},
@@ -29,6 +31,30 @@ struct ProxyQuery {
 #[tauri::command]
 fn get_proxy_port(state: tauri::State<AppState>) -> u16 {
     state.port
+}
+
+/// 读取用户工作区频道数据。
+/// 存放在应用数据目录的 channels.json（由前端 save_channels 写入）。
+/// 未写入过则返回 null，前端回退到内置种子列表。
+#[tauri::command]
+fn load_channels(app: tauri::AppHandle) -> Option<String> {
+    let dir = app.path().app_data_dir().ok()?;
+    let path = dir.join("channels.json");
+    std::fs::read_to_string(path).ok()
+}
+
+/// 持久化用户工作区频道数据到应用数据目录。
+/// payload 为 JSON 字符串：{ "categories": string[], "channels": Channel[] }
+#[tauri::command]
+fn save_channels(app: tauri::AppHandle, payload: String) -> Result<(), String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("无法定位应用数据目录: {e}"))?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("创建目录失败: {e}"))?;
+    let path = dir.join("channels.json");
+    std::fs::write(&path, payload).map_err(|e| format!("写入 channels.json 失败: {e}"))?;
+    Ok(())
 }
 
 /// 把真实直播地址包装成本地代理地址
@@ -185,7 +211,7 @@ fn main() {
 
     tauri::Builder::default()
         .manage(state)
-        .invoke_handler(tauri::generate_handler![get_proxy_port])
+        .invoke_handler(tauri::generate_handler![get_proxy_port, load_channels, save_channels])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

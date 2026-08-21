@@ -3,18 +3,20 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { channels, categories } from "@/data/channels";
 import type { Channel } from "@/data/channels";
 import type { PlayerStatus } from "@/lib/types";
 import { getProxyPort, proxyUrl } from "@/lib/proxy";
+import { useChannels } from "@/lib/channels-store";
 import { Sidebar } from "@/components/sidebar";
 import { VideoPlayer } from "@/components/video-player";
 import { ChannelList } from "@/components/channel-list";
 import { CommandPalette } from "@/components/command-palette";
+import { SourceManager } from "@/components/source-manager";
 
 const ALL = "全部";
 
 export function AppShell() {
+  const { channels, categories } = useChannels();
   const [activeCategory, setActiveCategory] = React.useState<string>(ALL);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<Channel | null>(null);
@@ -22,6 +24,7 @@ export function AppShell() {
   const [status, setStatus] = React.useState<PlayerStatus>("idle");
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [listOpen, setListOpen] = React.useState(true);
+  const [managerOpen, setManagerOpen] = React.useState(false);
   const [proxyPort, setProxyPort] = React.useState<number | null>(null);
 
   // 在 Tauri 环境获取本地代理端口（用于把直播地址改写为同源代理地址）
@@ -78,7 +81,7 @@ export function AppShell() {
     const m: Record<string, number> = {};
     for (const c of channels) m[c.category] = (m[c.category] ?? 0) + 1;
     return m;
-  }, []);
+  }, [channels]);
 
   const filtered = React.useMemo(() => {
     let list = channels;
@@ -88,7 +91,7 @@ export function AppShell() {
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((c) => c.name.toLowerCase().includes(q));
     return list;
-  }, [activeCategory, query]);
+  }, [channels, activeCategory, query]);
 
   // 全局快捷键
   React.useEffect(() => {
@@ -126,6 +129,24 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [filtered, paletteOpen, selectChannel]);
 
+  // 频道数据变更（添加/编辑/删除源或频道）后同步：
+  // 1) 正在播放的频道有更新时立即反映新源列表；
+  // 2) 当前选中频道已被删除时清空选中与播放状态。
+  React.useEffect(() => {
+    if (!selectedRef.current) return;
+    const upd = channels.find((c) => c.id === selectedRef.current!.id);
+    if (upd) {
+      if (upd !== selectedRef.current) {
+        selectedRef.current = upd;
+        setSelected(upd);
+      }
+    } else {
+      selectedRef.current = null;
+      setSelected(null);
+      setStatus("idle");
+    }
+  }, [channels]);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* 左侧分类导航 */}
@@ -139,6 +160,7 @@ export function AppShell() {
           query={query}
           onQueryChange={setQuery}
           onOpenPalette={() => setPaletteOpen(true)}
+          onManageSources={() => setManagerOpen(true)}
           listOpen={listOpen}
           onToggleList={() => setListOpen((o) => !o)}
         />
@@ -201,6 +223,8 @@ export function AppShell() {
         channels={channels}
         onSelect={selectChannel}
       />
+
+      <SourceManager open={managerOpen} onOpenChange={setManagerOpen} />
     </div>
   );
 }
